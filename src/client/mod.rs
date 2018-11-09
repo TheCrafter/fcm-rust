@@ -59,6 +59,7 @@ impl Client {
     }
 
     pub fn send(&self, message: Message) -> FutureResponse {
+        println!("[+] send() 1");
         let payload = serde_json::to_vec(&message.body).unwrap();
 
         let mut builder = Request::builder();
@@ -78,6 +79,8 @@ impl Client {
                 response::FcmError::ServerError(None)
             });
 
+        println!("[+] send() 2");
+        let payload = serde_json::to_vec(&message.body).unwrap();
         let fcm_f = send_request.and_then(move |response| {
             let response_status = response.status().clone();
             let retry_after = response.headers()
@@ -92,9 +95,11 @@ impl Client {
                 })
                 .concat2()
                 .and_then(move |body_chunk| {
+                    println!("[+] send() 3");
                     if let Ok(body) = String::from_utf8(body_chunk.to_vec()) {
                         match response_status {
                             StatusCode::OK => {
+                                println!("[+] send() 4");
                                 let fcm_response: FcmResponse = serde_json::from_str(&body).unwrap();
 
                                 match fcm_response.error {
@@ -102,8 +107,10 @@ impl Client {
                                         err(response::FcmError::ServerError(retry_after)),
                                     Some(ErrorReason::InternalServerError) =>
                                         err(response::FcmError::ServerError(retry_after)),
-                                    _ =>
+                                    _ => {
+                                        println!("[+] send() 5");
                                         ok(fcm_response)
+                                    }
                                 }
                             },
                             StatusCode::UNAUTHORIZED =>
